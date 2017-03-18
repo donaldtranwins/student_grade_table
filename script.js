@@ -22,8 +22,9 @@ function GradeTable() {
     this.addClicked = function () {
         console.log("addClicked called");
         if (this.$studentName.val() !== "" &&
+                //validate this.$studentName.val() before this, via keypress prolly.
             this.$course.val() !== "" &&
-            !isNaN(this.$studentGrade.val())){
+            !isNaN(parseFloat( this.$studentGrade.val() )) ){
             this.addStudent();
             this.updateData();
             this.cancelClicked();
@@ -67,34 +68,27 @@ function GradeTable() {
         console.log("calculateAverage called");
         var $arrayOfAllItems = $('tbody').find('tr td:nth-child(3)');
         var arrayOfAllGrades = [];
-        var highest = {
-            value: -1,
-            items: []
-        };
-        var lowest = {
-            value: 101,
-            items: []
-        };
+        var highestValue = -1;
+        var lowestValue = 101;
         for (var i=0; i < $arrayOfAllItems.length; i++){
             arrayOfAllGrades[i] = parseInt($arrayOfAllItems[i].innerHTML);
-            if (arrayOfAllGrades[i] > highest.value) {
-                highest.value = arrayOfAllGrades[i];
-                highest.items.push($arrayOfAllItems[i]);
-            } else if (arrayOfAllGrades[i] < lowest.value) {
-                lowest.value = arrayOfAllGrades[i];
-                lowest.items.push($arrayOfAllItems[i]);
+            if (arrayOfAllGrades[i] > highestValue) {
+                highestValue = arrayOfAllGrades[i];
+            }
+            if (arrayOfAllGrades[i] < lowestValue) {
+                lowestValue = arrayOfAllGrades[i];
             }
         }
-        function find(target){
-            return self.innerHTML == target;
+        var $arrayOfLowest = $arrayOfAllItems.filter(function(param){
+            return this.innerHTML == lowestValue;
+        });
+        var $arrayOfHighest = $arrayOfAllItems.filter(function(param){
+            return this.innerHTML == highestValue;
+        });
+        if ($arrayOfLowest[0] != $arrayOfHighest[0]) {
+            $arrayOfLowest.addClass('bg-danger');
         }
-        for (var j=0; j < $arrayOfAllItems.length; j++){
-            if
-        }
-        var $arrayOfHighest = $arrayOfAllItems.filter(find(highest.value));
-        var $arrayOfLowest = $arrayOfAllItems.filter(find(lowest.value));
         $arrayOfHighest.addClass('bg-success');
-        $arrayOfLowest.addClass('bg-danger');
         function sum(total,num){
             if (isNaN(num))
                 return total;
@@ -103,20 +97,22 @@ function GradeTable() {
         var total = arrayOfAllGrades.reduce(sum);
         return total/arrayOfAllGrades.length;
     };
-
     /**
      * updateData - centralized function to update the average and call student list update
      */
     this.updateData = function () {
-        var average = this.calculateAverage();
-        //modify average
+        console.log("updateData called.  Calling updateStudentList");
         this.updateStudentList();
+        var average = this.calculateAverage();
+        $('.avgGrade').text(average);
+        console.log("average is "+average);
     };
     /**
      * updateStudentList - loops through global student array and appends each objects data into the student-list-container > list-body
      */
     this.updateStudentList = function () {
         console.log("updateStudentList called");
+        $('tbody').empty();
         for (var i = 0; i < this.student_array.length; i++) {
             this.addStudentToDom(this.student_array[i]);
         }
@@ -128,14 +124,23 @@ function GradeTable() {
      */
     this.addStudentToDom = function (studentObj) {
         console.log("addStudentToDom called");
-        var newElement = $('' +
+        var $newElement = $('' +
             '<tr>' +
             '<td>' + studentObj.name + '</td>' +
             '<td>' + studentObj.course + '</td>' +
-            '<td>' + studentObj.studentGrade + '</td>' +
+            '<td>' + studentObj.grade + '</td>' +
             '<td><button type="button" class="btn btn-danger btn-xs">Delete</button></td>' +
             '</tr>');
-        $('.student-list tbody').append(newElement)
+        (function(self){
+            $newElement.appendTo('.student-list tbody');
+            $newElement.find('button').click(function(){
+                var location = $newElement.index();
+                $newElement.remove();
+                self.student_array.splice(location,1);
+                self.updateData();
+            });
+        })(this);
+
     };
     /**
      * reset - resets the application to initial state. Global variables reset, DOM get reset to initial load state
@@ -152,7 +157,6 @@ function GradeTable() {
         console.log("initializing handlers");
         $('#add').on('click',this.addClicked.bind(this));
         $('#cancel').on('click',this.cancelClicked.bind(this));
-        this.$studentGrade
     }
 }
 /**
