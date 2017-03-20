@@ -96,6 +96,9 @@ function GradeTable() {
      * updateData - centralized function to update the average and call student list update
      */
     this.updateData = function () {
+        if (this.student_array === undefined){
+            return;
+        }
         this.updateStudentList();
         var average = this.calculateAverage();
         $('.avgGrade').text(average);
@@ -152,14 +155,23 @@ function GradeTable() {
         $(this).parent().parent().remove();
     };
     this.hints = {
-        totalCalls: 0,
+        totalSuccesses: 0,
         totalHits: 0,
         count: [],
-        message: []
+        message: [],
+        previousObject: {},
+        currentObject: {},
+        arrayOfCalls: []
     };
-    this.lastObject = {};
-    this.currentObject = {};
-    this.fullHintCallObject = [];
+    this.errors = {
+        totalCalls: 0,
+        totalErrors: 0,
+        count: [],
+        message: [],
+        previousObject: {},
+        currentObject: {},
+        arrayOfCalls: []
+    };
     this.pullDataFromAPI = function(){
         $.ajax({
             dataType: 'json',
@@ -168,12 +180,36 @@ function GradeTable() {
             data: {
                 api_key: 'yPaZqUuy8L'
             },
+            error: function(response){
+                logErrors();
+                function logErrors() {
+                    self.errors.totalCalls++;
+                    self.errors.totalErrors++;
+                    console.log(response, this);
+                    var existing = self.errors.message.indexOf(response.error[0]);
+                    if (existing > -1) {
+                        self.errors.count[existing]++;
+                    } else {
+                        self.errors.message.push(response.error[0]);
+                        self.errors.count.push(1);
+                    }
+                    self.errors.arrayOfCalls.push({
+                        message: response.error[0],
+                        call: this,
+                        object: response
+                    });
+                    self.error.previousObject = self.error.currentObject;
+                    self.error.currentObject = response;
+                }
+            },
             success: function(response){
                 self.student_array = response.data;
                 self.updateData();
+
                 logHints();
                 function logHints() {
-                    self.hints.totalCalls++;
+                    self.errors.totalCalls++;
+                    self.hints.totalSuccesses++;
                     if (response.hint !== undefined) {
                         self.hints.totalHits++;
                         console.log(response.hint, this);
@@ -184,14 +220,14 @@ function GradeTable() {
                             self.hints.message.push(response.hint);
                             self.hints.count.push(1);
                         }
-                        self.fullHintCallObject.push({
+                        self.hints.arrayOfCalls.push({
                             message: response.hint,
-                            hintObject: this,
-                            success: response
+                            call: this,
+                            object: response
                         });
                     }
-                    self.lastObject = self.currentObject;
-                    self.currentObject = response;
+                    self.hints.previousObject = self.hints.currentObject;
+                    self.hints.currentObject = response;
                 }
             }
         })
@@ -210,7 +246,7 @@ function GradeTable() {
  * Listen for the document to load and reset the data to the initial state
  */
 $(document).ready(function(){
-    sgt = new GradeTable;
+    sgt = new GradeTable();
     sgt.initialize();
     sgt.reset();
 });
