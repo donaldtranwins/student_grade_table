@@ -190,6 +190,8 @@ function GradeTable() {
                             success: response
                         });
                     }
+                    self.lastObject = self.currentObject;
+                    self.currentObject = response;
                 }
             }
         })
