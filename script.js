@@ -14,27 +14,25 @@ function GradeTable() {
      * @type {string[]}
      */
     this.$studentName = $('#studentName');
-    this.$course = $('#course');
+    this.$studentCourse = $('#course');
     this.$studentGrade = $('#studentGrade');
     /**
      * addClicked - Event Handler when user clicks the add button
      */
     this.addClicked = function () {
-        console.log("addClicked called");
         if (this.$studentName.val() !== "" &&
-                //validate this.$studentName.val() before this, via keypress prolly.
-            this.$course.val() !== "" &&
+            this.$studentCourse.val() !== "" &&
             !isNaN(parseFloat( this.$studentGrade.val() )) ){
             this.addStudent();
-            this.updateData();
             this.cancelClicked();
+            this.updateData();
+            console.log("student added to student_array");
         }
     };
     /**
      * cancelClicked - Event Handler when user clicks the cancel button, should clear out student form
      */
     this.cancelClicked = function () {
-        console.log("cancelClicked");
         this.clearAddStudentForm();
     };
     /**
@@ -43,10 +41,9 @@ function GradeTable() {
      * @return undefined
      */
     this.addStudent = function () {
-        console.log("addStudent called");
         var studentToBeAdded = {};
         studentToBeAdded.name = this.$studentName.val();
-        studentToBeAdded.course = this.$course.val();
+        studentToBeAdded.course = this.$studentCourse.val();
         studentToBeAdded.grade = this.$studentGrade.val();
         this.student_array.push(studentToBeAdded);
         return;
@@ -55,9 +52,8 @@ function GradeTable() {
      * clearAddStudentForm - clears out the form values based on inputIds variable
      */
     this.clearAddStudentForm = function () {
-        console.log("clearAddStudentForm called");
         this.$studentName.val("");
-        this.$course.val("");
+        this.$studentCourse.val("");
         this.$studentGrade.val("");
     };
     /**
@@ -65,27 +61,26 @@ function GradeTable() {
      * @returns {number}
      */
     this.calculateAverage = function () {
-        console.log("calculateAverage called");
-        var $arrayOfAllItems = $('tbody').find('tr td:nth-child(3)');
-        var arrayOfAllGrades = [];
+        var $arrayOfAllElements = $('tbody').find('tr td:nth-child(3)');
+        var arrayOfAllGrades = [0]; //number
         var highestValue = -1;
-        var lowestValue = 101;
-        for (var i=0; i < $arrayOfAllItems.length; i++){
-            arrayOfAllGrades[i] = parseInt($arrayOfAllItems[i].innerHTML);
+        var lowestValue = 201;
+        for (var i=0; i < $arrayOfAllElements.length; i++){
+            arrayOfAllGrades[i] = Math.round($arrayOfAllElements[i].innerHTML);
             if (arrayOfAllGrades[i] > highestValue) {
-                highestValue = arrayOfAllGrades[i];
+                highestValue = arrayOfAllGrades[i]; //number
             }
             if (arrayOfAllGrades[i] < lowestValue) {
-                lowestValue = arrayOfAllGrades[i];
+                lowestValue = arrayOfAllGrades[i]; //number
             }
         }
-        var $arrayOfLowest = $arrayOfAllItems.filter(function(param){
+        var $arrayOfLowest = $arrayOfAllElements.filter(function(param){
             return this.innerHTML == lowestValue;
-        });
-        var $arrayOfHighest = $arrayOfAllItems.filter(function(param){
+        });//string
+        var $arrayOfHighest = $arrayOfAllElements.filter(function(param){
             return this.innerHTML == highestValue;
-        });
-        if ($arrayOfLowest[0] != $arrayOfHighest[0]) {
+        });//string
+        if ($arrayOfLowest[0] !== $arrayOfHighest[0]) {
             $arrayOfLowest.addClass('bg-danger');
         }
         $arrayOfHighest.addClass('bg-success');
@@ -94,24 +89,21 @@ function GradeTable() {
                 return total;
             return total+num;
         }
-        var total = arrayOfAllGrades.reduce(sum);
-        return total/arrayOfAllGrades.length;
+        var total = arrayOfAllGrades.reduce(sum); //number
+        return Math.round(total/arrayOfAllGrades.length);
     };
     /**
      * updateData - centralized function to update the average and call student list update
      */
     this.updateData = function () {
-        console.log("updateData called.  Calling updateStudentList");
         this.updateStudentList();
         var average = this.calculateAverage();
         $('.avgGrade').text(average);
-        console.log("average is "+average);
     };
     /**
      * updateStudentList - loops through global student array and appends each objects data into the student-list-container > list-body
      */
     this.updateStudentList = function () {
-        console.log("updateStudentList called");
         $('tbody').empty();
         for (var i = 0; i < this.student_array.length; i++) {
             this.addStudentToDom(this.student_array[i]);
@@ -123,7 +115,6 @@ function GradeTable() {
      * @param studentObj
      */
     this.addStudentToDom = function (studentObj) {
-        console.log("addStudentToDom called");
         var $newElement = $('' +
             '<tr>' +
             '<td>' + studentObj.name + '</td>' +
@@ -146,17 +137,71 @@ function GradeTable() {
      * reset - resets the application to initial state. Global variables reset, DOM get reset to initial load state
      */
     this.reset = function () {
-        console.log("reset called");
         this.student_array = [];
+        // this.updateData(); //to show off event delegation handler, comment this line out
     };
+    /**
+     * here begins the section where I deviate from the SGT skeleton to create my own functions
+     */
 
+    /**
+     * deleteRow - deletes a row using the Event Delegation method as opposed to
+     *              the anonymous closure inside the addStudentToDom function
+     */
+    this.deleteRow = function() {
+        $(this).parent().parent().remove();
+    };
+    this.hints = {
+        totalCalls: 0,
+        totalHits: 0,
+        count: [],
+        message: []
+    };
+    this.lastObject = {};
+    this.currentObject = {};
+    this.fullHintCallObject = [];
+    this.pullDataFromAPI = function(){
+        $.ajax({
+            dataType: 'json',
+            url: 'https://s-apis.learningfuze.com/sgt/get',
+            method: 'post',
+            data: {
+                api_key: 'yPaZqUuy8L'
+            },
+            success: function(response){
+                self.student_array = response.data;
+                self.updateData();
+                logHints();
+                function logHints() {
+                    self.hints.totalCalls++;
+                    if (response.hint !== undefined) {
+                        self.hints.totalHits++;
+                        console.log(response.hint, this);
+                        var existing = self.hints.message.indexOf(response.hint);
+                        if (existing > -1) {
+                            self.hints.count[existing]++;
+                        } else {
+                            self.hints.message.push(response.hint);
+                            self.hints.count.push(1);
+                        }
+                        self.fullHintCallObject.push({
+                            message: response.hint,
+                            hintObject: this,
+                            success: response
+                        });
+                    }
+                }
+            }
+        })
+    };
     /**
      * initialize - applies click handlers to the elements in the DOM
      */
     this.initialize = function() {
-        console.log("initializing handlers");
         $('#add').on('click',this.addClicked.bind(this));
         $('#cancel').on('click',this.cancelClicked.bind(this));
+        $('#get').on('click',this.pullDataFromAPI);
+        $('td').on('click','button',this.deleteRow); //row removal using event delegation
     }
 }
 /**
