@@ -183,18 +183,15 @@ function GradeTable() {
                 "grade": object.grade
             },
             error: function (response) {
-                debugger;
-                console.log("error: ", response);
-                self.errors.messages = self.errors.messages.concat(response.error);
+                logAndCreateErrorAlert(response.errors);
             },
             success: function (response) {
                 if (response.success){
                     object.id = response.new_id;
-                    console.log("Student #"+object.id+" "+object.name+": was successfully created on the server.")
+                    var message = 'Student ID #'+object.id+' "'+object.name+'" was successfully created on the server.';
+                    createSuccessAlert(message);
                 } else  {
-                    debugger;
-                    self.errors.messages = self.errors.messages.concat(response.error);
-                    console.log(response.error)
+                    logAndCreateErrorAlert(response.errors);
                 }
             }
         })
@@ -209,18 +206,14 @@ function GradeTable() {
                 "student_id": object.id
             },
             error: function (response) {
-                debugger;
-                console.log("error: ", response);
-                self.errors.messages = self.errors.messages.concat(response.error);
+                logAndCreateErrorAlert(response.errors);
             },
             success: function (response) {
                 if (response.success){
-                    console.log(response.success);
-                    console.log("Student #"+object.id+" "+object.name+": has been from removed from the server.")
+                    var message = 'Student ID #'+object.id+' "'+object.name+'" has been from removed from the server.';
+                    createSuccessAlert(message);
                 } else  {
-                    debugger;
-                    self.errors.messages = self.errors.messages.concat(response.error);
-                    console.log(response.error)
+                    logAndCreateErrorAlert(response.errors);
                 }
             }
         })
@@ -234,13 +227,11 @@ function GradeTable() {
                 api_key: 'yPaZqUuy8L'
             },
             error: function(response){
-                debugger;
-                console.log("error: ", response);
-                self.errors.messages = self.errors.messages.concat(response.error);
+                logAndCreateErrorAlert(response.error);
             },
             success: function(response){
                 if(response.success === false){
-                    self.errors.messages = self.errors.messages.concat(response.error);
+                    logAndCreateErrorAlert(response.error);
                     return;
                 }
                 if (self.dataPulled === false){
@@ -253,6 +244,21 @@ function GradeTable() {
             }
         })
     };
+    function createSuccessAlert(successMsg){
+        var alert = $('<div class="alert alert-success alert-dismissable">' +
+            '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
+            '<strong>Success!</strong> <span id="successMsg">'+successMsg+'</span>');
+        $('#alerts').append(alert);
+    }
+    function logAndCreateErrorAlert(message){
+        if (!message) message = ["Please contact an administrator."];
+        self.errors.messages = self.errors.messages.concat(message);
+        var errorMsg = message.join(" | ");
+        var alert = $('<div class="alert alert-danger alert-dismissable">' +
+            '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
+            '<strong>Error:</strong> <span id="errorMsg">'+errorMsg+'</span>');
+        $('#alerts').append(alert);
+    }
     this.findHints = function(){
         $.ajax({
             dataType: 'json',
@@ -290,7 +296,7 @@ function GradeTable() {
                 self.hints.totals.successes++;
                 if (response.hint !== undefined) {
                     self.hints.totals.hintsFound++;
-                    debugger;
+                    createHintAlert(response.hint);
                     console.log(response.hint);
                     var existing = self.hints.successes.messages.indexOf(response.hint);
                     if (existing > -1) {
@@ -307,6 +313,12 @@ function GradeTable() {
                 }
                 self.hints.successes.previousObject = self.hints.successes.currentObject;
                 self.hints.successes.currentObject = response;
+                function createHintAlert(hintMsg){
+                    var alert = $('<div class="alert alert-info alert-dismissable">' +
+                        '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
+                        '<strong>Hint:</strong> <span id="successMsg">'+hintMsg+'</span>');
+                    $('#alerts').append(alert);
+                }
             }
         })
     };
