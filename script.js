@@ -9,6 +9,33 @@ function GradeTable() {
      */
     this.student_array = [];
     var self = this;
+    this.dataPulled = false;
+    this.hints = {
+        totals: {
+            calls: 0,
+            hits: 0,
+            errors: 0,
+            successes: 0,
+            hintsFound: 0
+        },
+        successes: {
+            count: [],
+            messages: [],
+            previousObject: {},
+            currentObject: {},
+            arrayOfCalls: []
+        },
+        errors: {
+            count: [],
+            messages: [],
+            previousObject: {},
+            currentObject: {},
+            arrayOfCalls: []
+        }
+    };
+    this.errors = {
+        messages: []
+    };
     /**
      * inputIds - id's of the elements that are used to add students
      * @type {string[]}
@@ -20,13 +47,10 @@ function GradeTable() {
      * addClicked - Event Handler when user clicks the add button
      */
     this.addClicked = function () {
-        if (this.$studentName.val() !== "" &&
-            this.$studentCourse.val() !== "" &&
-            !isNaN(parseFloat( this.$studentGrade.val() )) ){
+        if (this.$studentName.val() !== "" && this.$studentCourse.val() !== "" && !isNaN(parseFloat( this.$studentGrade.val() )) ){
             this.addStudent();
             this.cancelClicked();
             this.updateData();
-            console.log("student added to student_array");
         }
     };
     /**
@@ -41,12 +65,16 @@ function GradeTable() {
      * @return undefined
      */
     this.addStudent = function () {
-        var studentToBeAdded = {};
-        studentToBeAdded.name = this.$studentName.val();
-        studentToBeAdded.course = this.$studentCourse.val();
-        studentToBeAdded.grade = this.$studentGrade.val();
+        var studentName = this.$studentName.val();
+        var studentCourse = this.$studentCourse.val();
+        var studentGrade = this.$studentGrade.val();
+        var studentToBeAdded = {
+            name: studentName,
+            course: studentCourse,
+            grade: studentGrade
+        };
         this.student_array.push(studentToBeAdded);
-        return;
+        this.createStudentOnServer(studentToBeAdded);
     };
     /**
      * clearAddStudentForm - clears out the form values based on inputIds variable
@@ -117,12 +145,12 @@ function GradeTable() {
      * into the .student_list tbody
      * @param studentObj
      */
-    this.addStudentToDom = function (studentObj) {
+    this.addStudentToDom = function (studentObject) {
         var $newElement = $('' +
             '<tr>' +
-            '<td>' + studentObj.name + '</td>' +
-            '<td>' + studentObj.course + '</td>' +
-            '<td>' + studentObj.grade + '</td>' +
+            '<td>' + studentObject.name + '</td>' +
+            '<td>' + studentObject.course + '</td>' +
+            '<td>' + studentObject.grade + '</td>' +
             '<td><button type="button" class="btn btn-danger btn-xs">Delete</button></td>' +
             '</tr>');
         (function(self){
@@ -130,6 +158,7 @@ function GradeTable() {
             $newElement.find('button').click(function(){
                 var location = $newElement.index();
                 $newElement.remove();
+                self.deleteStudentFromServer(self.student_array[location]);
                 self.student_array.splice(location,1);
                 self.updateData();
             });
@@ -141,38 +170,55 @@ function GradeTable() {
      */
     this.reset = function () {
         this.student_array = [];
-        // this.updateData(); //to show off event delegation handler, comment this line out
     };
-    /**
-     * here begins the section where I deviate from the SGT skeleton to create my own functions
-     */
-
-    /**
-     * deleteRow - deletes a row using the Event Delegation method as opposed to
-     *              the anonymous closure inside the addStudentToDom function
-     */
-    this.deleteRow = function() {
-        $(this).parent().parent().remove();
+    this.createStudentOnServer = function(object){
+        $.ajax({
+            dataType: 'json',
+            url: 'https://s-apis.learningfuze.com/sgt/create',
+            method: 'post',
+            data: {
+                api_key: 'yPaZqUuy8L',
+                "name": object.name,
+                "course": object.course,
+                "grade": object.grade
+            },
+            error: function (response) {
+                logAndCreateErrorAlert(response.errors);
+            },
+            success: function (response) {
+                if (response.success){
+                    object.id = response.new_id;
+                    var message = 'Student ID #'+object.id+' "'+object.name+'" was successfully created on the server.';
+                    createSuccessAlert(message);
+                } else  {
+                    logAndCreateErrorAlert(response.errors);
+                }
+            }
+        })
     };
-    this.hints = {
-        totalSuccesses: 0,
-        totalHits: 0,
-        count: [],
-        message: [],
-        previousObject: {},
-        currentObject: {},
-        arrayOfCalls: []
+    this.deleteStudentFromServer = function(object){
+        $.ajax({
+            dataType: 'json',
+            url: 'https://s-apis.learningfuze.com/sgt/delete',
+            method: 'post',
+            data: {
+                api_key: 'yPaZqUuy8L',
+                "student_id": object.id
+            },
+            error: function (response) {
+                logAndCreateErrorAlert(response.errors);
+            },
+            success: function (response) {
+                if (response.success){
+                    var message = 'Student ID #'+object.id+' "'+object.name+'" has been from removed from the server.';
+                    createSuccessAlert(message);
+                } else  {
+                    logAndCreateErrorAlert(response.errors);
+                }
+            }
+        })
     };
-    this.errors = {
-        totalCalls: 0,
-        totalErrors: 0,
-        count: [],
-        message: [],
-        previousObject: {},
-        currentObject: {},
-        arrayOfCalls: []
-    };
-    this.pullDataFromAPI = function(){
+    this.getDataFromServer = function(){
         $.ajax({
             dataType: 'json',
             url: 'https://s-apis.learningfuze.com/sgt/get',
@@ -181,53 +227,97 @@ function GradeTable() {
                 api_key: 'yPaZqUuy8L'
             },
             error: function(response){
-                logErrors();
-                function logErrors() {
-                    self.errors.totalCalls++;
-                    self.errors.totalErrors++;
-                    console.log(response, this);
-                    var existing = self.errors.message.indexOf(response.error[0]);
+                logAndCreateErrorAlert(response.error);
+            },
+            success: function(response){
+                if(response.success === false){
+                    logAndCreateErrorAlert(response.error);
+                    return;
+                }
+                if (self.dataPulled === false){
+                    self.student_array = self.student_array.concat(response.data);
+                    self.updateData();
+                    self.dataPulled = true;
+                } else {
+                    self.findHints();
+                }
+            }
+        })
+    };
+    function createSuccessAlert(successMsg){
+        var alert = $('<div class="alert alert-success alert-dismissable">' +
+            '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
+            '<strong>Success!</strong> <span id="successMsg">'+successMsg+'</span>');
+        $('#alerts').append(alert);
+    }
+    function logAndCreateErrorAlert(message){
+        if (!message) message = ["Please contact an administrator."];
+        self.errors.messages = self.errors.messages.concat(message);
+        var errorMsg = message.join(" | ");
+        var alert = $('<div class="alert alert-danger alert-dismissable">' +
+            '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
+            '<strong>Error:</strong> <span id="errorMsg">'+errorMsg+'</span>');
+        $('#alerts').append(alert);
+    }
+    this.findHints = function(){
+        $.ajax({
+            dataType: 'json',
+            url: 'https://s-apis.learningfuze.com/sgt/get',
+            method: 'post',
+            data: {
+                api_key: 'yPaZqUuy8L'
+            },
+            error: function(response){
+                self.hints.totals.calls++;
+                self.hints.totals.errors++;
+                console.log(response, this);
+                var existing = self.hints.errors.messages.indexOf(response.error[0]);
+                if (existing > -1) {
+                    self.hints.errors.count[existing]++;
+                } else {
+                    self.hints.errors.messages.push(response.error[0]);
+                    self.hints.errors.count.push(1);
+                }
+                self.hints.errors.arrayOfCalls.push({
+                    messages: response.error[0],
+                    call: this,
+                    object: response
+                });
+                self.hints.error.previousObject = self.error.currentObject;
+                self.hints.error.currentObject = response;
+            },
+            success: function(response){
+                self.hints.totals.calls++;
+                self.hints.totals.hits++;
+                if(response.success === false){
+                    self.errors.messages = self.errors.messages.concat(response.error);
+                    return;
+                }
+                self.hints.totals.successes++;
+                if (response.hint !== undefined) {
+                    self.hints.totals.hintsFound++;
+                    createHintAlert(response.hint);
+                    console.log(response.hint);
+                    var existing = self.hints.successes.messages.indexOf(response.hint);
                     if (existing > -1) {
-                        self.errors.count[existing]++;
+                        self.hints.successes.count[existing]++;
                     } else {
-                        self.errors.message.push(response.error[0]);
-                        self.errors.count.push(1);
+                        self.hints.successes.messages.push(response.hint);
+                        self.hints.successes.count.push(1);
                     }
-                    self.errors.arrayOfCalls.push({
-                        message: response.error[0],
+                    self.hints.successes.arrayOfCalls.push({
+                        messages: response.hint,
                         call: this,
                         object: response
                     });
-                    self.error.previousObject = self.error.currentObject;
-                    self.error.currentObject = response;
                 }
-            },
-            success: function(response){
-                self.student_array = response.data;
-                self.updateData();
-
-                logHints();
-                function logHints() {
-                    self.errors.totalCalls++;
-                    self.hints.totalSuccesses++;
-                    if (response.hint !== undefined) {
-                        self.hints.totalHits++;
-                        console.log(response.hint, this);
-                        var existing = self.hints.message.indexOf(response.hint);
-                        if (existing > -1) {
-                            self.hints.count[existing]++;
-                        } else {
-                            self.hints.message.push(response.hint);
-                            self.hints.count.push(1);
-                        }
-                        self.hints.arrayOfCalls.push({
-                            message: response.hint,
-                            call: this,
-                            object: response
-                        });
-                    }
-                    self.hints.previousObject = self.hints.currentObject;
-                    self.hints.currentObject = response;
+                self.hints.successes.previousObject = self.hints.successes.currentObject;
+                self.hints.successes.currentObject = response;
+                function createHintAlert(hintMsg){
+                    var alert = $('<div class="alert alert-info alert-dismissable">' +
+                        '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
+                        '<strong>Hint:</strong> <span id="successMsg">'+hintMsg+'</span>');
+                    $('#alerts').append(alert);
                 }
             }
         })
@@ -238,8 +328,7 @@ function GradeTable() {
     this.initialize = function() {
         $('#add').on('click',this.addClicked.bind(this));
         $('#cancel').on('click',this.cancelClicked.bind(this));
-        $('#get').on('click',this.pullDataFromAPI);
-        $('td').on('click','button',this.deleteRow); //row removal using event delegation
+        $('#get').on('click',this.getDataFromServer);
     }
 }
 /**
@@ -249,4 +338,5 @@ $(document).ready(function(){
     sgt = new GradeTable();
     sgt.initialize();
     sgt.reset();
+    sgt.getDataFromServer();
 });
