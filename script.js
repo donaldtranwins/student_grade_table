@@ -10,6 +10,8 @@ function GradeTable() {
     this.student_array = [];
     var self = this;
     this.dataPulled = false;
+    this.url = "../prototypes_C2.17/php_SGTserver/data.php?action=";
+    // this.url = "https://s-apis.learningfuze.com/sgt/";
     this.hints = {
         totals: {
             calls: 0,
@@ -174,7 +176,7 @@ function GradeTable() {
     this.createStudentOnServer = function(object){
         $.ajax({
             dataType: 'json',
-            url: 'https://s-apis.learningfuze.com/sgt/create',
+            url: this.url+"create",
             method: 'post',
             data: {
                 api_key: 'yPaZqUuy8L',
@@ -199,11 +201,12 @@ function GradeTable() {
     this.deleteStudentFromServer = function(object){
         $.ajax({
             dataType: 'json',
-            url: 'https://s-apis.learningfuze.com/sgt/delete',
+            url: this.url+'delete',
             method: 'post',
             data: {
                 api_key: 'yPaZqUuy8L',
-                "student_id": object.id
+                "student_id": object.id,
+                "id": object.id
             },
             error: function (response) {
                 logAndCreateErrorAlert(response.errors);
@@ -221,7 +224,7 @@ function GradeTable() {
     this.getDataFromServer = function(){
         $.ajax({
             dataType: 'json',
-            url: 'https://s-apis.learningfuze.com/sgt/get',
+            url: this.url+'get',
             method: 'post',
             data: {
                 api_key: 'yPaZqUuy8L'
@@ -251,7 +254,7 @@ function GradeTable() {
         $('#alerts').append(alert);
     }
     function logAndCreateErrorAlert(message){
-        if (!message) message = ["Please contact an administrator."];
+        if(!message)    message = ["Please contact an administrator."];
         self.errors.messages = self.errors.messages.concat(message);
         var errorMsg = message.join(" | ");
         var alert = $('<div class="alert alert-danger alert-dismissable">' +
@@ -328,7 +331,7 @@ function GradeTable() {
     this.initialize = function() {
         $('#add').on('click',this.addClicked.bind(this));
         $('#cancel').on('click',this.cancelClicked.bind(this));
-        $('#get').on('click',this.getDataFromServer);
+        $('#get').on('click',this.getDataFromServer.bind(this));
     }
 }
 /**
