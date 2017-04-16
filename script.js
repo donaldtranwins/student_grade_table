@@ -10,8 +10,8 @@ function GradeTable() {
     this.student_array = [];
     var self = this;
     this.dataPulled = false;
-    this.url = "../prototypes_C2.17/php_SGTserver/data.php?action=";
-    // this.url = "https://s-apis.learningfuze.com/sgt/";
+    // this.url = "../prototypes_C2.17/php_SGTserver/data.php?action=";
+    this.url = "https://s-apis.learningfuze.com/sgt/";
     this.hints = {
         totals: {
             calls: 0,
