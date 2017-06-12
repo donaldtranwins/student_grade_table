@@ -9,35 +9,8 @@ function GradeTable() {
      */
     this.student_array = [];
     var self = this;
-    this.dataPulled = false;
-    // this.url = "../../server/sgt.php";
-    this.url = "https://s-apis.learningfuze.com/sgt/";
-    this.hints = {
-        totals: {
-            calls: 0,
-            hits: 0,
-            errors: 0,
-            successes: 0,
-            hintsFound: 0
-        },
-        successes: {
-            count: [],
-            messages: [],
-            previousObject: {},
-            currentObject: {},
-            arrayOfCalls: []
-        },
-        errors: {
-            count: [],
-            messages: [],
-            previousObject: {},
-            currentObject: {},
-            arrayOfCalls: []
-        }
-    };
-    this.errors = {
-        messages: []
-    };
+    this.url = "../server/sgt.php?action=";
+    // this.url = "https://s-apis.learningfuze.com/sgt/";
     /**
      * inputIds - id's of the elements that are used to add students
      * @type {string[]}
@@ -235,14 +208,9 @@ function GradeTable() {
             success: function(response){
                 if(response.success === false){
                     logAndCreateErrorAlert(response.error);
-                    return;
-                }
-                if (self.dataPulled === false){
+                } else {
                     self.student_array = self.student_array.concat(response.data);
                     self.updateData();
-                    self.dataPulled = true;
-                } else {
-                    self.findHints();
                 }
             }
         })
@@ -255,76 +223,12 @@ function GradeTable() {
     }
     function logAndCreateErrorAlert(message){
         if(!message)    message = ["Please contact an administrator."];
-        self.errors.messages = self.errors.messages.concat(message);
         var errorMsg = message.join(" | ");
         var alert = $('<div class="alert alert-danger alert-dismissable">' +
             '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
             '<strong>Error:</strong> <span id="errorMsg">'+errorMsg+'</span>');
         $('#alerts').append(alert);
     }
-    this.findHints = function(){
-        $.ajax({
-            dataType: 'json',
-            url: 'https://s-apis.learningfuze.com/sgt/get',
-            method: 'post',
-            data: {
-                api_key: 'yPaZqUuy8L'
-            },
-            error: function(response){
-                self.hints.totals.calls++;
-                self.hints.totals.errors++;
-                console.log(response, this);
-                var existing = self.hints.errors.messages.indexOf(response.error[0]);
-                if (existing > -1) {
-                    self.hints.errors.count[existing]++;
-                } else {
-                    self.hints.errors.messages.push(response.error[0]);
-                    self.hints.errors.count.push(1);
-                }
-                self.hints.errors.arrayOfCalls.push({
-                    messages: response.error[0],
-                    call: this,
-                    object: response
-                });
-                self.hints.error.previousObject = self.error.currentObject;
-                self.hints.error.currentObject = response;
-            },
-            success: function(response){
-                self.hints.totals.calls++;
-                self.hints.totals.hits++;
-                if(response.success === false){
-                    self.errors.messages = self.errors.messages.concat(response.error);
-                    return;
-                }
-                self.hints.totals.successes++;
-                if (response.hint !== undefined) {
-                    self.hints.totals.hintsFound++;
-                    createHintAlert(response.hint);
-                    console.log(response.hint);
-                    var existing = self.hints.successes.messages.indexOf(response.hint);
-                    if (existing > -1) {
-                        self.hints.successes.count[existing]++;
-                    } else {
-                        self.hints.successes.messages.push(response.hint);
-                        self.hints.successes.count.push(1);
-                    }
-                    self.hints.successes.arrayOfCalls.push({
-                        messages: response.hint,
-                        call: this,
-                        object: response
-                    });
-                }
-                self.hints.successes.previousObject = self.hints.successes.currentObject;
-                self.hints.successes.currentObject = response;
-                function createHintAlert(hintMsg){
-                    var alert = $('<div class="alert alert-info alert-dismissable">' +
-                        '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
-                        '<strong>Hint:</strong> <span id="successMsg">'+hintMsg+'</span>');
-                    $('#alerts').append(alert);
-                }
-            }
-        })
-    };
     /**
      * initialize - applies click handlers to the elements in the DOM
      */
