@@ -8,6 +8,13 @@ $course = $_POST['course'];
 if(empty($name))        $output['errors'][] = 'Missing Name';
 if(empty($grade))       $output['errors'][] = 'Missing Grade';
 if(empty($course))      $output['errors'][] = 'Missing Course Name';
+$output['errors'][] = 'One Two Three';
+
+if($course == 123){
+    die(json_encode($output = array("errors"=>"Nope")));
+}
+$output['errors'][] = 'Three Two One';
+
 //write a query that inserts the data into the database.  remember that ID doesn't need to be set as it is auto incrementing
 $query = "INSERT INTO `student_data`(`name`, `grade`, `course`) VALUES ('$name','$grade','$course')";
 //send the query to the database, store the result of the query into $result
@@ -21,7 +28,7 @@ if(empty($result)){
     //check if the number of affected rows is 1
     if (mysqli_affected_rows($conn) === 1) {
         //if it did, change output success to true
-        $output['success'] = true;
+        $output['success'] = false;
         //get the insert ID of the row that was added
         $new_id = mysqli_insert_id($conn);
         //add 'insertID' to $outut and set the value to the row's insert ID

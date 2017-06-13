@@ -1,9 +1,6 @@
 var sgt;
 function GradeTable() {
     /**
-     * Define all global variables here
-     */
-    /**
      * student_array - global array to hold student objects
      * @type {Array}
      */
@@ -22,10 +19,20 @@ function GradeTable() {
      * addClicked - Event Handler when user clicks the add button
      */
     this.addClicked = function () {
-        if (this.$studentName.val() !== "" && this.$studentCourse.val() !== "" && !isNaN(parseFloat( this.$studentGrade.val() )) ){
+        const name = this.$studentName.val();
+        const course = this.$studentCourse.val();
+        const grade = this.$studentGrade.val();
+        const errors = [];
+        if (name && course && !isNaN(parseFloat(grade)) ){
             this.addStudent();
             this.cancelClicked();
             this.updateData();
+        } else {
+            if (!name) {
+                errors.push({field: "Name", message: "Name cannot be empty."})
+            } else if (name.length < 3) {
+                errors.push({field: "Name", message: "Name must be longer than 3 character.s"})
+            }
         }
     };
     /**
@@ -67,7 +74,7 @@ function GradeTable() {
         var $arrayOfAllElements = $('tbody').find('tr td:nth-child(3)');
         var arrayOfAllGrades = [0]; //number
         var highestValue = -1;
-        var lowestValue = 201;
+        var lowestValue = 101;
         for (var i=0; i < $arrayOfAllElements.length; i++){
             arrayOfAllGrades[i] = Math.round($arrayOfAllElements[i].innerHTML);
             if (arrayOfAllGrades[i] > highestValue) {
@@ -77,22 +84,18 @@ function GradeTable() {
                 lowestValue = arrayOfAllGrades[i]; //number
             }
         }
-        var $arrayOfLowest = $arrayOfAllElements.filter(function(param){
-            return this.innerHTML == lowestValue;
-        });//string
-        var $arrayOfHighest = $arrayOfAllElements.filter(function(param){
-            return this.innerHTML == highestValue;
-        });//string
+        var $arrayOfLowest = $arrayOfAllElements.filter( () => this.innerHTML == lowestValue ); //string
+        var $arrayOfHighest = $arrayOfAllElements.filter( () => this.innerHTML == highestValue ); //string
         if ($arrayOfLowest[0] !== $arrayOfHighest[0]) {
             $arrayOfLowest.addClass('bg-danger');
         }
         $arrayOfHighest.addClass('bg-success');
+        var total = arrayOfAllGrades.reduce(sum); //number
         function sum(total,num){
             if (isNaN(num))
                 return total;
             return total+num;
         }
-        var total = arrayOfAllGrades.reduce(sum); //number
         return Math.round(total/arrayOfAllGrades.length);
     };
     /**
@@ -149,7 +152,7 @@ function GradeTable() {
     this.createStudentOnServer = function(object){
         $.ajax({
             dataType: 'json',
-            url: this.url+"create",
+            url: this.url+"post",
             method: 'post',
             data: {
                 api_key: 'yPaZqUuy8L',
@@ -158,15 +161,17 @@ function GradeTable() {
                 "grade": object.grade
             },
             error: function (response) {
-                logAndCreateErrorAlert(response.errors);
+                debugger;
+                createAlert("Error:",response.errors);
             },
             success: function (response) {
+                debugger;
                 if (response.success){
                     object.id = response.new_id;
-                    var message = 'Student ID #'+object.id+' "'+object.name+'" was successfully created on the server.';
-                    createSuccessAlert(message);
+                    const message = `Student ID #${object.id} "${object.name}" was successfully created on the server.`;
+                    $('#alerts').append(createAlert("Success!",message));
                 } else  {
-                    logAndCreateErrorAlert(response.errors);
+                    $('#alerts').append(createAlert("Error:",response.errors));
                 }
             }
         })
@@ -182,14 +187,16 @@ function GradeTable() {
                 "id": object.id
             },
             error: function (response) {
-                logAndCreateErrorAlert(response.errors);
+                debugger;
+                createErrorAlert("Error:",response.errors);
             },
             success: function (response) {
                 if (response.success){
                     var message = 'Student ID #'+object.id+' "'+object.name+'" has been from removed from the server.';
-                    createSuccessAlert(message);
+                    debugger;
+                    $('#alerts').append(createSuccessAlert(message));
                 } else  {
-                    logAndCreateErrorAlert(response.errors);
+                    createErrorAlert("Error:",response.errors);
                 }
             }
         })
@@ -203,30 +210,40 @@ function GradeTable() {
                 api_key: 'yPaZqUuy8L'
             },
             error: function(response){
-                logAndCreateErrorAlert(response.error);
+                debugger;
+                createErrorAlert("Error:",response.errors);
             },
             success: function(response){
-                if(response.success === false){
-                    logAndCreateErrorAlert(response.error);
-                } else {
+                if(response.success){
                     self.student_array = self.student_array.concat(response.data);
                     self.updateData();
+                } else {
+                    createErrorAlert("Error:",response.errors);
                 }
             }
         })
     };
-    function createSuccessAlert(successMsg){
-        var alert = $('<div class="alert alert-success alert-dismissable">' +
-            '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
-            '<strong>Success!</strong> <span id="successMsg">'+successMsg+'</span>');
-        $('#alerts').append(alert);
+    function createAlert(type,message){
+        debugger;
+        const color = type === "Success!" ? "success" : "danger" ;
+        message = typeof message === "string" ? message : message.join(" | ");
+        const alertBox = `<div class="alert alert-${color} alert-dismissable">
+            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>`;
+        const alertText = `<strong>${type}</strong> <span id="successMsg">${message}</span>`;
+        return $(alertBox + alertText);
     }
-    function logAndCreateErrorAlert(message){
-        if(!message)    message = ["Please contact an administrator."];
-        var errorMsg = message.join(" | ");
-        var alert = $('<div class="alert alert-danger alert-dismissable">' +
-            '<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>' +
-            '<strong>Error:</strong> <span id="errorMsg">'+errorMsg+'</span>');
+    function createSuccessAlert(successString){
+        debugger;
+        return $(`<div class="alert alert-success alert-dismissable">
+            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+            <strong>Success!</strong> <span id="successMsg">${successString}</span>`);
+    }
+    function createErrorAlert(titleString, messageArray = ["Please contact an administrator."]){
+        debugger;
+        var errorMsg = messageArray.join(" | ");
+        var alert = $(`<div class="alert alert-danger alert-dismissable">
+            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+            <strong>${titleString}:</strong> <span id="errorMsg">${errorMsg}</span>`);
         $('#alerts').append(alert);
     }
     /**
