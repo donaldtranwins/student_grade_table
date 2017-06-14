@@ -5,7 +5,7 @@ function GradeTable() {
      * @type {Array}
      */
     this.student_array = [];
-    var self = this;
+    const self = this;
     this.url = "../server/sgt.php?action=";
     // this.url = "https://s-apis.learningfuze.com/sgt/";
     /**
@@ -22,39 +22,71 @@ function GradeTable() {
         const name = this.$studentName.val();
         const course = this.$studentCourse.val();
         const grade = this.$studentGrade.val();
-        const errors = [];
         if (name && course && !isNaN(parseFloat(grade)) ){
-            this.addStudent();
+            this.addStudent(name, course, grade);
             this.cancelClicked();
             this.updateData();
         } else {
-            if (!name) {
-                errors.push({field: "Name", message: "Name cannot be empty."})
-            } else if (name.length < 3) {
-                errors.push({field: "Name", message: "Name must be longer than 3 character.s"})
-            }
+            const nameErrors = validateName(name);
+            const courseErrors = validateCourse(course);
+            const gradeErrors = validateGrade(grade);
+            displayValidationErrors(nameErrors, courseErrors, gradeErrors);
         }
     };
+    function validateName(name) {
+        const errors = [];
+        const name = name.trim();
+        if (!name) {
+            errors.push("cannot be empty")
+        } else if (name.length < 2) {
+            errors.push("must be at least 2 characters")
+        } else if (name.length > 32) {
+            errors.push("must be shorter than 32 characters")
+        }
+        let error = !name ? "cannot be empty"
+            : name.length < 2 ? "must be at least 2 characters"
+                : name.length > 32 ? "must be shorter than 32 characters"
+                    : false;
+        return error;
+
+    }
+    function validateCourse(course){
+        const errors = [];
+        if (!course) {
+
+        }
+        return errors;
+    }
+    function validateGrade(grade){
+        const errors = [];
+        if (!grade) {
+
+        }
+        return errors;
+    }
+    function displayValidationErrors(name, course, grade){
+        let alert = `<div class="alert alert-danger alert-dismissable">
+            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+            <strong>Please fix the following errors:</strong>`;
+        if (name) alert += `<strong>Name:</strong> <span id="successMsg">${name}</span>`;
+        if (course) alert += `<strong>Course:</strong> <span id="successMsg">${course}</span>`;
+        if (grade) alert += `<strong>Grade:</strong> <span id="successMsg">${grade}</span>`;
+        $('#validation').append($(alert));
+    }
     /**
      * cancelClicked - Event Handler when user clicks the cancel button, should clear out student form
      */
     this.cancelClicked = function () {
         this.clearAddStudentForm();
+        $('.close').trigger('click');
     };
     /**
      * addStudent - creates a student objects based on input fields in the form and adds the object to global student array
      *
      * @return undefined
      */
-    this.addStudent = function () {
-        var studentName = this.$studentName.val();
-        var studentCourse = this.$studentCourse.val();
-        var studentGrade = this.$studentGrade.val();
-        var studentToBeAdded = {
-            name: studentName,
-            course: studentCourse,
-            grade: studentGrade
-        };
+    this.addStudent = function (name, course, grade) {
+        const studentToBeAdded = { name, course, grade };
         this.student_array.push(studentToBeAdded);
         this.createStudentOnServer(studentToBeAdded);
     };
@@ -71,11 +103,11 @@ function GradeTable() {
      * @returns {number}
      */
     this.calculateAverage = function () {
-        var $arrayOfAllElements = $('tbody').find('tr td:nth-child(3)');
-        var arrayOfAllGrades = [0]; //number
-        var highestValue = -1;
-        var lowestValue = 101;
-        for (var i=0; i < $arrayOfAllElements.length; i++){
+        const $arrayOfAllElements = $('tbody').find('tr td:nth-child(3)');
+        const arrayOfAllGrades = [0]; //number
+        let highestValue = -1;
+        let lowestValue = 101;
+        for (let i=0; i < $arrayOfAllElements.length; i++){
             arrayOfAllGrades[i] = Math.round($arrayOfAllElements[i].innerHTML);
             if (arrayOfAllGrades[i] > highestValue) {
                 highestValue = arrayOfAllGrades[i]; //number
@@ -84,13 +116,13 @@ function GradeTable() {
                 lowestValue = arrayOfAllGrades[i]; //number
             }
         }
-        var $arrayOfLowest = $arrayOfAllElements.filter( () => this.innerHTML == lowestValue ); //string
-        var $arrayOfHighest = $arrayOfAllElements.filter( () => this.innerHTML == highestValue ); //string
+        const $arrayOfLowest = $arrayOfAllElements.filter( () => this.innerHTML == lowestValue ); //string
+        const $arrayOfHighest = $arrayOfAllElements.filter( () => this.innerHTML == highestValue ); //string
         if ($arrayOfLowest[0] !== $arrayOfHighest[0]) {
             $arrayOfLowest.addClass('bg-danger');
         }
         $arrayOfHighest.addClass('bg-success');
-        var total = arrayOfAllGrades.reduce(sum); //number
+        const total = arrayOfAllGrades.reduce(sum); //number
         function sum(total,num){
             if (isNaN(num))
                 return total;
@@ -106,7 +138,7 @@ function GradeTable() {
             return;
         }
         this.updateStudentList();
-        var average = this.calculateAverage();
+        const average = this.calculateAverage();
         $('.avgGrade').text(average);
     };
     /**
@@ -114,7 +146,7 @@ function GradeTable() {
      */
     this.updateStudentList = function () {
         $('tbody').empty();
-        for (var i = 0; i < this.student_array.length; i++) {
+        for (let i = 0; i < this.student_array.length; i++) {
             this.addStudentToDom(this.student_array[i]);
         }
     };
@@ -124,7 +156,7 @@ function GradeTable() {
      * @param studentObj
      */
     this.addStudentToDom = function (studentObject) {
-        var $newElement = $('' +
+        const $newElement = $('' +
             '<tr>' +
             '<td>' + studentObject.name + '</td>' +
             '<td>' + studentObject.course + '</td>' +
@@ -134,7 +166,7 @@ function GradeTable() {
         (function(self){
             $newElement.appendTo('.student-list tbody');
             $newElement.find('button').click(function(){
-                var location = $newElement.index();
+                let location = $newElement.index();
                 $newElement.remove();
                 self.deleteStudentFromServer(self.student_array[location]);
                 self.student_array.splice(location,1);
@@ -188,15 +220,15 @@ function GradeTable() {
             },
             error: function (response) {
                 debugger;
-                createErrorAlert("Error:",response.errors);
+                $('#alerts').append(createAlert("Error:",response.errors));
             },
             success: function (response) {
                 if (response.success){
-                    var message = 'Student ID #'+object.id+' "'+object.name+'" has been from removed from the server.';
+                    const message = 'Student ID #'+object.id+' "'+object.name+'" has been from removed from the server.';
                     debugger;
-                    $('#alerts').append(createSuccessAlert(message));
+                    $('#alerts').append(createAlert("Success!",message));
                 } else  {
-                    createErrorAlert("Error:",response.errors);
+                    $('#alerts').append(createAlert("Error:",response.errors));
                 }
             }
         })
@@ -211,14 +243,14 @@ function GradeTable() {
             },
             error: function(response){
                 debugger;
-                createErrorAlert("Error:",response.errors);
+                $('#alerts').append(createAlert("Error:",response.errors));
             },
             success: function(response){
                 if(response.success){
                     self.student_array = self.student_array.concat(response.data);
                     self.updateData();
                 } else {
-                    createErrorAlert("Error:",response.errors);
+                    $('#alerts').append(createAlert("Error:",response.errors));
                 }
             }
         })
@@ -240,8 +272,8 @@ function GradeTable() {
     }
     function createErrorAlert(titleString, messageArray = ["Please contact an administrator."]){
         debugger;
-        var errorMsg = messageArray.join(" | ");
-        var alert = $(`<div class="alert alert-danger alert-dismissable">
+        const errorMsg = messageArray.join(" | ");
+        const alert = $(`<div class="alert alert-danger alert-dismissable">
             <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
             <strong>${titleString}:</strong> <span id="errorMsg">${errorMsg}</span>`);
         $('#alerts').append(alert);
