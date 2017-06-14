@@ -201,9 +201,9 @@ function GradeTable() {
                 if (response.success){
                     object.id = response.new_id;
                     const message = `Student ID #${object.id} "${object.name}" was successfully created on the server.`;
-                    $('#alerts').append(createAlert("Success!",message));
+                    createAlert("Success!",message);
                 } else  {
-                    $('#alerts').append(createAlert("Error:",response.errors));
+                    createAlert("Error:",response.errors);
                 }
             }
         })
@@ -220,15 +220,15 @@ function GradeTable() {
             },
             error: function (response) {
                 debugger;
-                $('#alerts').append(createAlert("Error:",response.errors));
+                createAlert("Error:",response.errors);
             },
             success: function (response) {
                 if (response.success){
                     const message = 'Student ID #'+object.id+' "'+object.name+'" has been from removed from the server.';
                     debugger;
-                    $('#alerts').append(createAlert("Success!",message));
+                    createAlert("Success!",message);
                 } else  {
-                    $('#alerts').append(createAlert("Error:",response.errors));
+                    createAlert("Error:",response.errors);
                 }
             }
         })
@@ -243,14 +243,14 @@ function GradeTable() {
             },
             error: function(response){
                 debugger;
-                $('#alerts').append(createAlert("Error:",response.errors));
+                createAlert("Error:",response.errors);
             },
             success: function(response){
                 if(response.success){
                     self.student_array = self.student_array.concat(response.data);
                     self.updateData();
                 } else {
-                    $('#alerts').append(createAlert("Error:",response.errors));
+                    createAlert("Error:",response.errors);
                 }
             }
         })
@@ -262,7 +262,7 @@ function GradeTable() {
         const alertBox = `<div class="alert alert-${color} alert-dismissable">
             <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>`;
         const alertText = `<strong>${type}</strong> <span id="successMsg">${message}</span>`;
-        return $(alertBox + alertText);
+        $('#alerts').append($(alertBox + alertText));
     }
     function createSuccessAlert(successString){
         debugger;
